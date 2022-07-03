@@ -1,17 +1,17 @@
 package com.glaydson.moviesbattle.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
 import org.hibernate.annotations.GeneratorType;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @Builder
 @Table(name = "TB_GAMES")
@@ -19,15 +19,18 @@ public class Game {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    //@SequenceGenerator(name = "id_game_seq", sequenceName = "id_game_seq", allocationSize = 1)
     @Column(name = "game_id")
     private Long id;
+
+    @OneToMany(mappedBy = "game", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("game")
+    private List<GameRound> rounds;
 
     @Column(name = "player")
     private String player;
 
     @Column(name = "total_points", nullable = false)
-    private Long totalPoints;
+    private Integer totalPoints;
 
     @Column(name = "total_rounds", nullable = false)
     private Long totalRounds;
@@ -37,6 +40,8 @@ public class Game {
 
     @Column(name = "date_time_end")
     private LocalDateTime dateTimeEnd;
+
+
 
 
 

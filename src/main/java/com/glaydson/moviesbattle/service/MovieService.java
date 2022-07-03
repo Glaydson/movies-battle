@@ -31,6 +31,14 @@ public class MovieService {
         return movies;
     }
 
+    public Integer totalMovies() {
+        return Long.valueOf(this.repository.count()).intValue();
+    }
+
+    public String getMovieTitle(Long movieId) {
+        return this.repository.findById(movieId).get().getTitle();
+    }
+
     public void carregarFilmesIMDB() {
         // Lê filmes da api IMDB e carrega na tabela de filmes
         for (int pagina = 1; pagina <= NUM_PAGINAS_LIDAS; pagina++) {
@@ -56,4 +64,14 @@ public class MovieService {
         }
     }
 
+    public boolean checkAnswer(Long idMovie1, Long idMovie2, Integer answer) {
+
+        Movie movie1 = this.repository.findById(idMovie1).get();
+        Movie movie2 = this.repository.findById(idMovie2).get();
+
+        Double points1 = movie1.getImdbRating() * movie1.getImdbVotes();
+        Double points2 = movie2.getImdbRating() * movie2.getImdbVotes();
+
+        return (points1 > points2);
+    }
 }
