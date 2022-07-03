@@ -1,0 +1,11 @@
+openapi: 3.0.0
+info:
+  description: API for a Game where the user may bet which movie is best evaluated
+  title: Movies Battle
+  version: "0.1"
+servers:
+- url: /
+paths: {}
+components:
+  schemas: {}
+
