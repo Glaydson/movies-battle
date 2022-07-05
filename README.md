@@ -14,7 +14,7 @@ Endpoints:
 - api/game/playround/{gameId}/{roundId}/{option} - process the user option
 - api/end - ends a game
 
-The API Documentation using OpenAPI 3.0 is available at http://localhost:8080/swagger-ui
+The API Documentation using OpenAPI 3.0 will be available (after the api starts) at http://localhost:8080/swagger-ui
 
 This API uses the following technologies:
 - Java 11
