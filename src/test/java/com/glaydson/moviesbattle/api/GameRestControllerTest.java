@@ -3,34 +3,25 @@ package com.glaydson.moviesbattle.api;
 import com.glaydson.moviesbattle.entity.Game;
 import com.glaydson.moviesbattle.entity.GameRound;
 import com.glaydson.moviesbattle.service.GameService;
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import static io.restassured.module.mockmvc.RestAssuredMockMvc.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static io.restassured.module.mockmvc.RestAssuredMockMvc.standaloneSetup;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(SpringExtension.class)
-@WebMvcTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class GameRestControllerTest {
 
 
@@ -50,13 +41,13 @@ class GameRestControllerTest {
 
 
     @Test
-    public void testUnathourizedWhenStatusWhenDontAuth() {
+    public void testUnathourized() {
         given().get("/api/game/start").then().statusCode(org.apache.http.HttpStatus.SC_UNAUTHORIZED);
 
     }
 
     @Test
-    public void testUnathourizedStatusWhenUserDoesntExist() {
+    public void testUnathourizedWhenUserDoesntExist() {
         given().auth().basic("wronguser", "user")
                 .get("/api/game/start")
                 .then().statusCode(org.apache.http.HttpStatus.SC_UNAUTHORIZED);
@@ -64,7 +55,7 @@ class GameRestControllerTest {
     }
 
     @Test
-    public void testUnauthorizedStatusWhenWrongPassword() {
+    public void testUnauthorizedWhenWrongPassword() {
         given().auth().basic("user1", "pass")
                 .get("/api/game/start")
                 .then().statusCode(org.apache.http.HttpStatus.SC_UNAUTHORIZED);
@@ -79,7 +70,6 @@ class GameRestControllerTest {
     }
 
     @Test
-    @DirtiesContext
     void testStartGameOk() throws Exception {
         GameService mockGameService = Mockito.mock(GameService.class);
         when(mockGameService.startGame("user1"))
@@ -95,7 +85,6 @@ class GameRestControllerTest {
     }
 
     @Test
-    @DirtiesContext
     void testStartGameAlreadyExists() throws Exception {
         GameService mockGameService = Mockito.mock(GameService.class);
         when(mockGameService.startGame("user1"))
@@ -110,7 +99,6 @@ class GameRestControllerTest {
     }
 
     @Test
-    @DirtiesContext
     void testEndGameOK() {
         GameService mockGameService = Mockito.mock(GameService.class);
         Mockito.when(mockGameService.endGame("user1"))
@@ -127,7 +115,6 @@ class GameRestControllerTest {
     }
 
     @Test
-    @DirtiesContext
     void testEndGameAlreadyEnded() {
         GameService mockGameService = Mockito.mock(GameService.class);
         Mockito.when(mockGameService.endGame("user1"))

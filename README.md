@@ -26,4 +26,5 @@ This API uses the following technologies:
 - Lombok
 - Spring Doc OpenAPI
 - Spring Mock MVC
+- JUnit 5
 - Mockito

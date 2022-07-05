@@ -23,6 +23,10 @@ public class RankRestController {
     @Autowired
     private RankService rankService;
 
+    /**
+     * Return the list of players ordered by their points in the ranking
+     * @return Ranking of players
+     */
     @Operation(summary = "Return the ranking of the game - a list of players ordered by his points")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "The list is returned",
