@@ -18,9 +18,12 @@ public class RankService {
     @Autowired
     private RankRepository repository;
 
+    /**
+     * Update the rank after a game is ended.
+     * @param game The game that will be used to update the rank
+     */
     public void updateRank(Game game) {
         // Points = Number of quizzes * percentage of correct answers
-        //Double percOfCorrectAnswers =  game.getTotalPoints().doubleValue() / game.getTotalRounds().doubleValue();
 
         // Find if the player has a rank
         Optional<Rank> optRank = this.repository.findByPlayer(game.getPlayer());
@@ -44,6 +47,10 @@ public class RankService {
         }
     }
 
+    /**
+     * Obtain a ranking of players with their points
+     * @return List of players with their points, ordered by points
+     */
     public List<RankResource> getRanking() {
 
         List<Rank> allRanks = this.repository.findAllByOrderByPointsRankingDesc();
@@ -54,6 +61,5 @@ public class RankService {
             ranking.add(new RankResource(rank.getPlayer(), rank.getPointsRanking()));
         }
         return ranking;
-
     }
 }

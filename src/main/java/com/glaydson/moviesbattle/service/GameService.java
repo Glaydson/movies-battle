@@ -83,7 +83,7 @@ public class GameService {
 
         // Search an active game with this id and for this player
         Optional<Game> gameOptional = repository.findById(gameId);
-        if (!gameOptional.isPresent()) {
+        if (gameOptional.isEmpty()) {
             throw new Exception("Game not found");
         }
         final Game game = gameOptional.get();
@@ -102,7 +102,7 @@ public class GameService {
             // Find two random movies to put in the round
             Integer totalMovies = this.movieService.totalMovies();
             Random rand = new Random();
-            boolean pairsAreOk = false;
+            boolean pairsAreOk;
             Long idMovie1, idMovie2;
             do {
                 idMovie1 = (long) rand.ints(0, (totalMovies + 1))    // IntStream
@@ -157,7 +157,7 @@ public class GameService {
 
         // Search the game
         Optional<Game> gameOptional = repository.findById(gameId);
-        if (!gameOptional.isPresent()) {
+        if (gameOptional.isEmpty()) {
             throw new Exception("Game not found");
         }
         final Game game = gameOptional.get();
@@ -214,10 +214,10 @@ public class GameService {
      * Non valid sequences: [A-A] the same movie repeated;
      * [A-B, A-B] repeated pairs – pairs of kind A-B e B-A are the same
      * The following pairs are valid: [A-B, B-C]
-     * @param gameRounds
-     * @param idMovie1
-     * @param idMovie2
-     * @return
+     * @param gameRounds List of rounds of the current game
+     * @param idMovie1 id of the first movie to be included in the round
+     * @param idMovie2 id of the second movie to be included in the round
+     * @return True if the pairs are valid, false otherwise
      */
     private boolean checkIfPairsAreOk(List<GameRound> gameRounds, Long idMovie1, Long idMovie2) {
         if (Objects.equals(idMovie1, idMovie2)) return false;

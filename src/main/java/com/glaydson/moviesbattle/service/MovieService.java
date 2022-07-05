@@ -15,33 +15,35 @@ public class MovieService {
     @Autowired
     private MovieRepository repository;
 
-    private static final int NUM_PAGINAS_LIDAS = 10;
+    private static final int NUM_PAGES_READ = 10;
     private static final String URL_SEARCH = "http://www.omdbapi.com/?apikey=a824da67&s=love&type=movie&page=";
     private static final String URL_MOVIE = "http://www.omdbapi.com/?apikey=a824da67&plot=full&i=";
     public static final String INVALID_RATING = "N / A";
-//    public static String SQL_INSERT =
-//            "INSERT INTO TB_MOVIES " +
-//            "(TITLE, IMDB_RATING, IMDB_VOTES) " +
-//            "VALUES ('%s', %s, %s);";
 
-
-    public List<Movie> findAllMovies() {
-        List<Movie> movies = new ArrayList<>();
-        this.repository.findAll().forEach(movies::add);
-        return movies;
-    }
-
+    /**
+     * Return the total of movies in the database
+     * @return Total of movies in the database
+     */
     public Integer totalMovies() {
         return Long.valueOf(this.repository.count()).intValue();
     }
 
+    /**
+     * Return the title of a movie by its id
+     * @param movieId id of the movie
+     * @return Title of the movie with the specified id
+     */
     public String getMovieTitle(Long movieId) {
         return this.repository.findById(movieId).get().getTitle();
     }
 
+    /**
+     * Obtain a list of movies from IMDB database and load them in this app database for use.
+     * Only some fields are loaded, and only a subset of the movies is loaded (all movies that contain
+     * the word "love" in its title).
+     */
     public void loadMoviesIMDB() {
-        // Lê filmes da api IMDB e carrega na tabela de filmes
-        for (int pagina = 1; pagina <= NUM_PAGINAS_LIDAS; pagina++) {
+        for (int pagina = 1; pagina <= NUM_PAGES_READ; pagina++) {
 
             RestTemplate restTemplate = new RestTemplate();
             String urlMoviesList = URL_SEARCH + pagina;
@@ -64,6 +66,13 @@ public class MovieService {
         }
     }
 
+    /**
+     * Check if the user answer in a round is correct.
+     * @param idMovie1 First movie option
+     * @param idMovie2 Second movie option
+     * @param answer Movie chosen by the user
+     * @return True if the answer is correct, False otherwise
+     */
     public boolean checkAnswer(Long idMovie1, Long idMovie2, Integer answer) {
 
         Movie movie1 = this.repository.findById(idMovie1).get();

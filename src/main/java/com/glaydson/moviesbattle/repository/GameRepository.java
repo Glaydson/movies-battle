@@ -9,6 +9,4 @@ public interface GameRepository extends CrudRepository<Game, Long> {
 
     Game findByDateTimeEndIsNullAndPlayer(String player);
 
-    Game findByIdAndDateTimeEndIsNullAndPlayer(Long id, String player);
-
 }
