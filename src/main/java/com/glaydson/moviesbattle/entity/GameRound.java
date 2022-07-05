@@ -50,4 +50,16 @@ public class GameRound {
         this.game = game;
     }
 
+    public GameRound(String player, Integer roundNumber, Long iDMovie1, Long idMovie2, Game game, Integer answer, Boolean correct) {
+        this.player = player;
+        this.roundNumber = roundNumber;
+        this.iDMovie1 = iDMovie1;
+        this.iDMovie2 = idMovie2;
+        this.game = game;
+        this.answer = answer;
+        this.correct = correct;
+    }
+
+
+
 }

@@ -134,6 +134,15 @@ public class GameService {
         }
     }
 
+    /**
+     * Play a round of the game. Processes the option chose by the user and update the round and the game.
+     * @param gameId id of the game
+     * @param roundId id of the round
+     * @param option movie selected (1 or 2)
+     * @param player Player authenticated
+     * @return Resource containing the results after processing the round
+     * @throws Exception If some information is invalid
+     */
     public GameRoundResultResource playRound(Long gameId, Long roundId, Integer option, String player)
             throws Exception {
 
@@ -223,6 +232,12 @@ public class GameService {
         return true;
     }
 
+    /**
+     * Update some fields of the game. Verify if maximum number of erros has been reached.
+     * @param game Game to be updated
+     * @param correct If the answer of the last round is correct or not
+     * @param numberOfErrors number of erros up to now
+     */
     private void updateGame(Game game, boolean correct, Integer numberOfErrors) {
         if (correct) game.setTotalPoints(game.getTotalPoints() + 1);
         if (numberOfErrors == 3) {
@@ -233,6 +248,10 @@ public class GameService {
         this.repository.save(game);
     }
 
+    /**
+     * Update the game round
+     * @param gameRound the game round to be updated
+     */
     private void updateGameRound(GameRound gameRound) {
         this.roundRepository.save(gameRound);
     }

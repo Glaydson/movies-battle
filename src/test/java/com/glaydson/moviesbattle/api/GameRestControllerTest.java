@@ -31,17 +31,12 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest
-//@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT )
-  //  @RunWith(SpringRunner.class)
 class GameRestControllerTest {
 
-    @Value("${server.port}")
-    private int serverPort;
 
 //    @Autowired
 //    private MockMvc mvc;
 
-//
     @Autowired
     private GameRestController gameRestController;
 
@@ -51,15 +46,7 @@ class GameRestControllerTest {
     @BeforeEach
     void setUp() {
         standaloneSetup(this.gameRestController);
-        //assertEquals(8080, serverPort);
     }
-
-//    @Test
-//    void startGame() throws Exception {
-//        RequestBuilder request = MockMvcRequestBuilders.get("/api/game/start");
-//        MvcResult result = mvc.perform(request).andReturn();
-//        assertEquals("", result.getResponse().getContentAsString());
-//    }
 
 
     @Test
