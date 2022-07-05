@@ -28,19 +28,16 @@ public class SecurityConfiguration {
                 .password("pass2")
                 .roles("USER")
                 .build();
-        return new InMemoryUserDetailsManager(user1, user2);
+        UserDetails user3 = User.withDefaultPasswordEncoder()
+                .username("user3")
+                .password("pass3")
+                .roles("USER")
+                .build();
+        return new InMemoryUserDetailsManager(user1, user2, user3);
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
-//        http.authorizeRequests()
-//                .antMatchers("/").permitAll()
-//                .antMatchers("/api/**").authenticated()
-//                .and()
-//                .httpBasic()
-//                .and()
-//                .cors().and().csrf().disable();
 
         http.authorizeRequests()
                 .antMatchers("/").permitAll()

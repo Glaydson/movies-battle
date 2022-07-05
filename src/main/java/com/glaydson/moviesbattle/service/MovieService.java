@@ -39,7 +39,7 @@ public class MovieService {
         return this.repository.findById(movieId).get().getTitle();
     }
 
-    public void carregarFilmesIMDB() {
+    public void loadMoviesIMDB() {
         // Lê filmes da api IMDB e carrega na tabela de filmes
         for (int pagina = 1; pagina <= NUM_PAGINAS_LIDAS; pagina++) {
 

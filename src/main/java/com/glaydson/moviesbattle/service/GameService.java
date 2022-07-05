@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -26,94 +27,115 @@ public class GameService {
     @Autowired
     private MovieService movieService;
 
-    public Game startGame(String player) {
-        // Carregar dados de filmes do IMDB
-        this.movieService.carregarFilmesIMDB();
+    @Autowired
+    private RankService rankService;
 
-        // Verifica se não existe jogo para este jogador
+    /**
+     * Start a game for the player authenticated
+     * @param player User authenticated
+     * @return The Game object
+     */
+    public Game startGame(String player) throws Exception {
+
+        // Check if there isn't game for this player
         final Game game = repository.findByDateTimeEndIsNullAndPlayer(player);
         if (Objects.isNull(game)) {
+            // Load movie data from IMDB
+            this.movieService.loadMoviesIMDB();
             return repository.save(Game.builder()
                     .totalRounds(0L)
                     .player(player)
                     .totalPoints(0)
                     .dateTimeStart(LocalDateTime.now()).build());
+        } else {
+            // Game already started for the player
+            throw new Exception("There is an active Game for this player");
         }
-        return game;
     }
 
-
-
+    /**
+     * Ends a game for the authenticated player
+     * @param player Authenticated player
+     * @return The Game object
+     */
     public Game endGame(String player) {
 
-        // Verifica se existe jogo para este jogador
+        // Check if exists an active game for this player
         final Game game = repository.findByDateTimeEndIsNullAndPlayer(player);
 
         if (Objects.isNull(game)) {
-            // TODO não há jogo ativo para o jogador
+            // There's no active game for this player
+            return null;
         }
-        // Encerra o jogo
+        // Ends the game - sets the end attribute
         game.setDateTimeEnd(LocalDateTime.now());
+        this.repository.save(game);
+        this.rankService.updateRank(game);
         return game;
     }
 
     /**
      * Creates a new round for the player
-     * @param player
+     * @param player The authenticated player
      * @return A new round for the player
      */
-    public GameRoundStartResource startRound(Long gameId, String player) {
+    public GameRoundStartResource startRound(Long gameId, String player) throws Exception {
 
-        //TODO validate the movie pairs before creating a new round
-
-        // Procura jogo iniciado para este jogador
-        //final Game game = repository.findByDateTimeEndIsNullAndPlayer(player);
-        final Game game = repository.findById(gameId).get();
-
-        if (Objects.isNull(game)) {
-            // O jogo não existe
-            // TODO o que fazer quando não há jogo para o jogador ou o jogo não existe
-            // o que fazer quando aciona o startround em sequencia, sem finalizar a rodada (answer continua nulo)
-
-            return null;
-        } else {
-
-            if (game.getPlayer().equals(player) && Objects.isNull(game.getDateTimeEnd())) {
-                List<GameRound> gameRounds = game.getRounds();
-                // Find 2 random movies to put in the round
-                Integer totalMovies = this.movieService.totalMovies();
-                Random rand = new Random();
-
-                Long idMovie1 = (long) rand.ints(0, (totalMovies + 1))    // IntStream
-                        .findAny()
-                        .getAsInt();
-
-                Long idMovie2 = (long) rand.ints(0, (totalMovies + 1))    // IntStream
-                        .findAny()
-                        .getAsInt();
-
-                GameRound newRound = new GameRound(player, gameRounds.size() + 1, idMovie1, idMovie2, game);
-                //gameRounds.add(newRound);
-                //game.setRounds(gameRounds);
-                this.roundRepository.save(newRound);
-                repository.save(game);
-                return GameRoundStartResource.builder()
-                        .roundId(newRound.getId())
-                        .gameId(newRound.getGame().getId())
-                        .player(newRound.getPlayer())
-                        .roundNumber(newRound.getRoundNumber())
-                        .movie1Title(movieService.getMovieTitle(newRound.getIDMovie1()))
-                        .movie2Title(movieService.getMovieTitle((newRound.getIDMovie2())))
-                        .build();
-            } else {
-                // TODO não há jogo iniciado para este jogador
-                return null;
-            }
+        // Search an active game with this id and for this player
+        Optional<Game> gameOptional = repository.findById(gameId);
+        if (!gameOptional.isPresent()) {
+            throw new Exception("Game not found");
         }
+        final Game game = gameOptional.get();
 
+        // Check if the game is associated with this player and if its active
+        if (game.getPlayer().equals(player) && Objects.isNull(game.getDateTimeEnd())) {
+            List<GameRound> gameRounds = game.getRounds();
+            // Check if the last round is completed. Otherwise, can't continue
+            if (gameRounds.size() > 0) {
+                GameRound lastRound = gameRounds.get(gameRounds.size() - 1);
+                if (Objects.isNull(lastRound.getAnswer())) {
+                    // Last round has no answer, must play and complete the round
+                    throw new Exception("There is a round without an answer. Can't start a new round");
+                }
+            }
+            // Find two random movies to put in the round
+            Integer totalMovies = this.movieService.totalMovies();
+            Random rand = new Random();
+            boolean pairsAreOk = false;
+            Long idMovie1, idMovie2;
+            do {
+                idMovie1 = (long) rand.ints(0, (totalMovies + 1))    // IntStream
+                        .findAny()
+                        .getAsInt();
+
+                idMovie2 = (long) rand.ints(0, (totalMovies + 1))    // IntStream
+                        .findAny()
+                        .getAsInt();
+                pairsAreOk = checkIfPairsAreOk(gameRounds, idMovie1, idMovie2);
+            } while (!pairsAreOk);
+
+            GameRound newRound = new GameRound(
+                    player, gameRounds.size() + 1, idMovie1, idMovie2, game);
+
+            this.roundRepository.save(newRound);
+            repository.save(game);
+            return GameRoundStartResource.builder()
+                    .roundId(newRound.getId())
+                    .gameId(newRound.getGame().getId())
+                    .player(newRound.getPlayer())
+                    .roundNumber(newRound.getRoundNumber())
+                    .movie1Title(movieService.getMovieTitle(newRound.getIDMovie1()))
+                    .movie2Title(movieService.getMovieTitle((newRound.getIDMovie2())))
+                    .build();
+        } else {
+            // The game is not active and/or does not belong to this player
+            throw new Exception("Game not active or does not belong to this player");
+        }
     }
 
-    public GameRoundResultResource playRound(Long gameId, Long roundId, Integer option, String player) {
+    public GameRoundResultResource playRound(Long gameId, Long roundId, Integer option, String player)
+            throws Exception {
 
         // Verify if the game exists
         // Verify if the game is for this player and its started
@@ -124,69 +146,89 @@ public class GameService {
         // Verify if the game is over (3 errors)
         // Mount resource response with the information to the player
 
-        final Game game = repository.findById(gameId).get();
-        if (Objects.isNull(game)) {
-            // O jogo não existe
-            // TODO o que fazer quando não há jogo para o jogador ou o jogo não existe
-            // o que fazer quando aciona o playround em sequencia, ou sem que exista round em aberto (todos answers diferentes de null)
+        // Search the game
+        Optional<Game> gameOptional = repository.findById(gameId);
+        if (!gameOptional.isPresent()) {
+            throw new Exception("Game not found");
+        }
+        final Game game = gameOptional.get();
 
-            return null;
-        } else {
-            if (game.getPlayer().equals(player) && Objects.isNull(game.getDateTimeEnd())) {
-                // Verify if the round exists for that game
-                Integer numberOfErrors = 0;
-                for (GameRound gameRound : game.getRounds()) {
-                    if (null != gameRound.getCorrect() && !gameRound.getCorrect()) {
-                        numberOfErrors++;
-                    }
+        if (game.getPlayer().equals(player) && Objects.isNull(game.getDateTimeEnd())) {
+            // Verify if the round exists for that game
+            Integer numberOfErrors = 0;
+            for (GameRound gameRound : game.getRounds()) {
+                if (null != gameRound.getCorrect() && !gameRound.getCorrect()) {
+                    numberOfErrors++;
                 }
-                //Integer numberOfErrors = (int)game.getRounds().stream().filter(round -> null != round && !round.getCorrect()).count();
-                List<GameRound> roundsGame = game.getRounds();
-                boolean correct = false;
-                for (GameRound gameRound: roundsGame) {
-                    if (gameRound.getId().equals(roundId)) {
-                        // Round exists
-                        if (Objects.isNull(gameRound.getCorrect())) {
-                            // Round not answered yet - ok
-                            // check if the answer is correct
-                            gameRound.setAnswer(option == 1 ? gameRound.getIDMovie1().intValue() :
-                                    gameRound.getIDMovie2().intValue());
-                            correct = this.movieService.checkAnswer(gameRound.getIDMovie1(), gameRound.getIDMovie2(), gameRound.getAnswer());
-                            gameRound.setCorrect(correct);
-                            if (!correct) numberOfErrors++;
-                            updateGameRound(gameRound);
-                            break;
-                        } else {
-                            // round invalid - already answered
-                            return null;
-                        }
-                    } else {
-                        // round not exists for this game
-                        return null;
-                    }
-                }
-
-                updateGame(game, correct, numberOfErrors);
-                return GameRoundResultResource.builder()
-                                .gameId(gameId)
-                                .correct(correct)
-                                .player(player)
-                                .totalPoints(game.getTotalPoints())
-                                .numberOfErrors(numberOfErrors)
-                                .roundId(roundId)
-                                .build();
-            } else {
-                // TODO não há jogo iniciado para este jogador
-                return null;
             }
+            List<GameRound> roundsGame = game.getRounds();
+            boolean correct = false;
+            boolean roundExists = false;
+            for (GameRound gameRound: roundsGame) {
+                if (gameRound.getId().equals(roundId)) {
+                    // Round exists
+                    roundExists = true;
+                    if (Objects.isNull(gameRound.getCorrect())) {
+                        // Round not answered yet - ok
+                        // check if the answer is correct
+                        gameRound.setAnswer(option == 1 ? gameRound.getIDMovie1().intValue() :
+                                gameRound.getIDMovie2().intValue());
+                        correct = this.movieService.checkAnswer(gameRound.getIDMovie1(), gameRound.getIDMovie2(), gameRound.getAnswer());
+                        gameRound.setCorrect(correct);
+                        if (!correct) numberOfErrors++;
+                        updateGameRound(gameRound);
+                        break;
+                    } else {
+                        // round invalid - already answered
+                        throw new Exception("Round already answered.");
+                    }
+                }
+            }
+            // Round not found for the roundId supplied
+            if (!roundExists) throw new Exception("Round not found.");
+            updateGame(game, correct, numberOfErrors);
+            return GameRoundResultResource.builder()
+                            .gameId(gameId)
+                            .correct(correct)
+                            .player(player)
+                            .totalPoints(game.getTotalPoints())
+                            .numberOfErrors(numberOfErrors)
+                            .roundId(roundId)
+                            .build();
+        } else {
+            throw new Exception("There is no game active with the id supplied for this player");
         }
     }
 
+    /**
+     * Check if a pair of movies is ok.
+     * Non valid sequences: [A-A] the same movie repeated;
+     * [A-B, A-B] repeated pairs – pairs of kind A-B e B-A are the same
+     * The following pairs are valid: [A-B, B-C]
+     * @param gameRounds
+     * @param idMovie1
+     * @param idMovie2
+     * @return
+     */
+    private boolean checkIfPairsAreOk(List<GameRound> gameRounds, Long idMovie1, Long idMovie2) {
+        if (Objects.equals(idMovie1, idMovie2)) return false;
+        for (GameRound round: gameRounds) {
+            Long mId1 = round.getIDMovie1();
+            Long mId2 = round.getIDMovie2();
+            if ( (Objects.equals(idMovie1, mId1) && Objects.equals(idMovie2, mId2)) ||
+                    (Objects.equals(idMovie1, mId2) && Objects.equals(idMovie2, mId1)) ) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private void updateGame(Game game, boolean correct, Integer numberOfErrors) {
-
         if (correct) game.setTotalPoints(game.getTotalPoints() + 1);
-        if (numberOfErrors > 3) game.setDateTimeEnd(LocalDateTime.now()); // game is over
+        if (numberOfErrors == 3) {
+            game.setDateTimeEnd(LocalDateTime.now()); // game is over
+            this.rankService.updateRank(game);
+        }
         game.setTotalRounds(game.getTotalRounds() + 1);
         this.repository.save(game);
     }
